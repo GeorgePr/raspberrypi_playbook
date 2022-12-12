@@ -1,0 +1,7 @@
+[debian]
+deb0	ansible_become_pass="{{ deb0_become_pass }}"
+deb1	ansible_become_pass="{{ deb1_become_pass }}"
+
+[debian:vars]
+ansible_become=yes
+ansible_become_method=sudo

@@ -1,0 +1,124 @@
+- hosts: debian
+  vars_files:
+    - vault.yml
+  gather_facts: true
+
+  vars:
+    deb_architecture: {
+      "aarch64": "arm64",
+      "x86_64": "amd64"
+    }
+
+  tasks:
+    - name: ping
+      ping:
+      tags: ping
+
+    - name: Set timezone
+      community.general.timezone:
+        name: Europe/Athens
+      tags: general
+
+    - name: Create keyrings directory
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+      tags: docker
+
+    - name: Add Docker apt repository key
+      get_url:
+        url: https://download.docker.com/linux/debian/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+        force: true
+      tags: docker
+
+    - name: Create docker.list
+      copy:
+        dest: "/etc/apt/sources.list.d/docker.list"
+        content: |
+          deb [arch={{ [ansible_architecture] | map('extract', deb_architecture) | first }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian   bullseye stable
+
+      tags: docker
+
+    - name: apt update
+      apt:
+        update_cache: yes
+      tags: apt
+
+    - name: apt upgrade
+      apt:
+        upgrade: yes
+      tags: apt
+
+    - name: Install packages
+      apt:
+        pkg:
+          - git
+          - zsh
+          - vim
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+          - rsync
+          - net-tools
+        state: latest
+      tags: apt
+
+    - name: apt autoremove
+      apt:
+        autoremove: yes
+      tags: apt
+
+    - name: Copy zshrc
+      ansible.builtin.copy:
+        src: /Users/george/.zshrc
+        dest: /home/{{ ansible_ssh_user }}/.zshrc
+        remote_src: no
+      tags: zsh
+
+    - name: Check if zsh-syntax-highlighting exists
+      stat:
+        path: /home/{{ ansible_ssh_user }}/.zsh/zsh-syntax-highlighting
+      register: zsh_syntax_highlighting
+      tags: zsh
+
+    - name: Clone if zsh-syntax-highlighting does not exist
+      git:
+        repo: https://github.com/zsh-users/zsh-syntax-highlighting
+        dest: /home/{{ ansible_ssh_user }}/.zsh/zsh-syntax-highlighting
+        clone: yes
+        update: yes
+      when: not zsh_syntax_highlighting.stat.exists
+      tags: zsh
+
+    - name: Check if zsh-autosuggestions exists
+      stat:
+        path: /home/{{ ansible_ssh_user }}/.zsh/zsh-autosuggestions
+      register: zsh_autosuggestions
+      tags: zsh
+
+    - name: Clone if zsh-autosuggestions does not exist
+      git:
+        repo: https://github.com/zsh-users/zsh-autosuggestions
+        dest: /home/{{ ansible_ssh_user }}/.zsh/zsh-autosuggestions
+        clone: yes
+        update: yes
+      when: not zsh_autosuggestions.stat.exists
+      tags: zsh
+
+    - name: Change shell to zsh 
+      user:
+        name: "{{ ansible_ssh_user }}"
+        shell: /bin/zsh
+      become: yes
+      tags: zsh
+    
+    - name: Source .zshrc
+      shell: source /home/{{ ansible_ssh_user }}/.zshrc
+      args:
+         executable: /bin/zsh
+      become_user: "{{ ansible_env.SUDO_USER }}"
+      tags: zsh
