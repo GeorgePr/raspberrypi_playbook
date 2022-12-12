@@ -4,5 +4,5 @@ This playbook installs Docker, Zsh, rsync along with plugins and configuration f
 ## Installation
   
   1. Clone or download this repository
-  2. Create a vault file with `ansible-vault create vault.yml` specifying the become password for the host you intend to run this on (the syntax is `deb0_become_pass: <your_password>`.
+  2. Create a vault file with `ansible-vault create vault.yml` specifying the become password for the host you intend to run this on (the syntax is `deb0_become_pass: <your_password>`)
   3. Run the playbook using `ansible-playbook -i hosts main.yml --ask-vault-pass`
